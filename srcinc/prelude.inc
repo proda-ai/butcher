@@ -103,18 +103,20 @@ import qualified Control.Monad.Trans.State as State
 import qualified Control.Monad.Trans.State.Lazy as StateL
 import qualified Control.Monad.Trans.State.Strict as StateS
 
+import qualified Control.Monad.Trans.Except as Except
+
 import Data.Functor.Identity ( Identity(..) )
 import Control.Concurrent.Chan ( Chan )
 -- import Control.Concurrent.MVar ( MVar )
 -- import Control.Monad.ST ( ST )
 -- import Data.IORef ( IORef )
-import Data.Monoid ( Endo(..), All(..), Any(..), Sum(..), Product(..), First(..), Last(..), Alt(..), )
+import Data.Monoid ( Endo(..), All(..), Any(..), Sum(..), Product(..), Alt(..), )
 -- import Data.Ord ( Ordering(..), Down(..) )
 -- import Data.Ratio ( Ratio, Rational )
 import Data.Void ( Void )
 -- import Data.Proxy ( Proxy(..) )
 import Data.Sequence ( Seq )
-import Data.Semigroup ( Semigroup(..) )
+import Data.Semigroup ( Semigroup(..), Option )
 
 import Data.Map ( Map )
 import Data.Set ( Set )
@@ -160,6 +162,7 @@ import Prelude                            ( Char
                                           , putStrLn
                                           , putStr
                                           , Show (..)
+                                          , Read (..)
                                           , print
                                           , fst
                                           , snd

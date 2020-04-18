@@ -62,6 +62,7 @@ module UI.Butcher.Monadic.Command
   , reorderStart
   , reorderStop
   , withReorder
+  , traverseBarbie
   , peekCmdDesc
   , peekInput
     -- * Building CmdParsers - myprog -v --input PATH
@@ -83,10 +84,8 @@ where
 
 #include "prelude.inc"
 
-
-
-import           UI.Butcher.Monadic.Internal.Types
-import           UI.Butcher.Monadic.Internal.Core
+import           UI.Butcher.Internal.MonadicTypes
+import           UI.Butcher.Internal.Monadic
 import           UI.Butcher.Monadic.Flag
 import           UI.Butcher.Monadic.Param
 

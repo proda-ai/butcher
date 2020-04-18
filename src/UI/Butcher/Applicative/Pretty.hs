@@ -26,7 +26,7 @@
 -- >     if short
 -- >       then putStrLn $ "hi, " ++ name ++ "!"
 -- >       else putStrLn $ "hello, " ++ name ++ ", welcome from butcher!"
-module UI.Butcher.Monadic.Pretty
+module UI.Butcher.Applicative.Pretty
   ( ppUsage
   , ppUsageShortSub
   , ppUsageAt

@@ -21,11 +21,11 @@ import qualified Text.PrettyPrint as PP
 
 import           Data.HList.ContainsType
 
-import           UI.Butcher.Monadic.Internal.Types
-import           UI.Butcher.Monadic.Internal.Core
+import           UI.Butcher.Internal.MonadicTypes
+import           UI.Butcher.Internal.Monadic
+import           UI.Butcher.Internal.Interactive
 import           UI.Butcher.Monadic.Pretty
 import           UI.Butcher.Monadic.Param
-import           UI.Butcher.Monadic.Interactive
 
 import           System.IO
 
@@ -37,7 +37,7 @@ import           System.IO
 --
 -- > addHelpCommand = addHelpCommandWith
 -- >   (pure . PP.renderStyle PP.style { PP.ribbonsPerLine = 1.0 } . ppHelpShallow)
-addHelpCommand :: Applicative f => CommandDesc a -> CmdParser f (IO ()) ()
+addHelpCommand :: Applicative f => CommandDesc -> CmdParser f (IO ()) ()
 addHelpCommand = addHelpCommandWith
   (pure . PP.renderStyle PP.style { PP.ribbonsPerLine = 1.0 } . ppHelpShallow)
 
@@ -51,7 +51,7 @@ addHelpCommand = addHelpCommandWith
 --
 -- > addHelpCommand2 = addHelpCommandWith
 -- >   (pure . PP.renderStyle PP.style { PP.ribbonsPerLine = 1.0 } . ppHelpDepthOne)
-addHelpCommand2 :: Applicative f => CommandDesc a -> CmdParser f (IO ()) ()
+addHelpCommand2 :: Applicative f => CommandDesc -> CmdParser f (IO ()) ()
 addHelpCommand2 = addHelpCommandWith
   (pure . PP.renderStyle PP.style { PP.ribbonsPerLine = 1.0 } . ppHelpDepthOne)
 
@@ -59,8 +59,8 @@ addHelpCommand2 = addHelpCommandWith
 -- the relevant subcommand's 'CommandDesc' into a String.
 addHelpCommandWith
   :: Applicative f
-  => (CommandDesc a -> IO String)
-  -> CommandDesc a
+  => (CommandDesc -> IO String)
+  -> CommandDesc
   -> CmdParser f (IO ()) ()
 addHelpCommandWith f desc = addCmd "help" $ do
   addCmdSynopsis "print help about this command"
@@ -68,7 +68,7 @@ addHelpCommandWith f desc = addCmd "help" $ do
   addCmdImpl $ do
     let restWords = List.words rest
     let
-      descent :: [String] -> CommandDesc a -> CommandDesc a
+      descent :: [String] -> CommandDesc -> CommandDesc
       descent [] curDesc = curDesc
       descent (w:wr) curDesc =
         case
@@ -110,6 +110,7 @@ addButcherDebugCommand = addCmd "butcherdebug" $ do
 addShellCompletionCommand
   :: CmdParser Identity (IO ()) () -> CmdParser Identity (IO ()) ()
 addShellCompletionCommand mainCmdParser = do
+  desc <- peekCmdDesc
   addCmdHidden "completion" $ do
     addCmdSynopsis "utilites to enable bash-completion"
     addCmd "bash-script" $ do
@@ -122,16 +123,18 @@ addShellCompletionCommand mainCmdParser = do
         "generate possible completions for given input arguments"
       rest <- addParamRestOfInputRaw "REALCOMMAND" mempty
       addCmdImpl $ do
-        let (cdesc, remaining, _result) =
-              runCmdParserExt Nothing rest mainCmdParser
+        let (cdesc, remaining, result) =
+              runCmdParserCoreFromDesc desc rest mainCmdParser
         let
-          compls = shellCompletionWords (inputString rest)
+          info = combinedCompletion  rest
+                     desc
                                         cdesc
-                                        (inputString remaining)
+                                        remaining
+                                        result
         let lastWord =
               reverse $ takeWhile (not . Char.isSpace) $ reverse $ inputString
                 rest
-        putStrLn $ List.unlines $ compls <&> \case
+        putStrLn $ List.unlines $ _ppi_choices info <&> \case
           CompletionString s  -> s
           CompletionFile      -> "$(compgen -f -- " ++ lastWord ++ ")"
           CompletionDirectory -> "$(compgen -d -- " ++ lastWord ++ ")"
@@ -145,7 +148,7 @@ addShellCompletionCommand mainCmdParser = do
 --
 -- > $ source <(foo completion bash-script foo)
 addShellCompletionCommand'
-  :: (CommandDesc out -> CmdParser Identity (IO ()) ())
+  :: (CommandDesc -> CmdParser Identity (IO ()) ())
   -> CmdParser Identity (IO ()) ()
 addShellCompletionCommand' f = addShellCompletionCommand (f emptyCommandDesc)
 

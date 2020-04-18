@@ -5,25 +5,25 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE TemplateHaskell #-}
 
-module UI.Butcher.Monadic.Internal.Types
+module UI.Butcher.Internal.CommonTypes
   ( CommandDesc (..)
   , cmd_mParent
   , cmd_help
   , cmd_synopsis
   , cmd_parts
-  , cmd_out
+  , cmd_hasImpl
   , cmd_children
   , cmd_visibility
   , emptyCommandDesc
-  , CmdParserF (..)
-  , CmdParser
   , PartDesc (..)
   , Input (..)
+  , EpsilonFlag (..)
   , ParsingError (..)
   , addSuggestion
   , ManyUpperBound (..)
   , Visibility (..)
   , CompletionItem (..)
+  , PartialParseInfo (..)
   )
 where
 
@@ -47,44 +47,25 @@ import qualified Text.PrettyPrint as PP
 data Input = InputString String | InputArgs [String]
   deriving (Show, Eq)
 
+data EpsilonFlag = AllowEpsilon | DenyEpsilon deriving Eq
+
 -- | Information about an error that occured when trying to parse some @Input@
 -- using some @CmdParser@.
 data ParsingError = ParsingError
-  { _pe_messages  :: [String]
-  , _pe_remaining :: Input
+  { _pe_messages     :: [String]
+  , _pe_remaining    :: Input
+  , _pe_expectedDesc :: Maybe PartDesc
   }
-  deriving (Show, Eq)
+  deriving (Show)
 
 -- | Specifies whether we accept 0-1 or 0-n for @CmdParserPart@s.
 data ManyUpperBound
   = ManyUpperBound1
   | ManyUpperBoundN
+  deriving Eq
 
 data Visibility = Visible | Hidden
   deriving (Show, Eq)
-
-data CmdParserF f out a
-  =                          CmdParserHelp PP.Doc a
-  |                          CmdParserSynopsis String a
-  |                          CmdParserPeekDesc (CommandDesc () -> a)
-  |                          CmdParserPeekInput (String -> a)
-  -- TODO: we can clean up this duplication by providing
-  -- a function (String -> Maybe (p, String)) -> (Input -> Maybe (p, Input)).
-  | forall p . Typeable p => CmdParserPart PartDesc (String -> Maybe (p, String)) (p -> f ()) (p -> a)
-  | forall p . Typeable p => CmdParserPartMany ManyUpperBound PartDesc (String -> Maybe (p, String)) (p -> f ()) ([p] -> a)
-  | forall p . Typeable p => CmdParserPartInp PartDesc (Input -> Maybe (p, Input)) (p -> f ()) (p -> a)
-  | forall p . Typeable p => CmdParserPartManyInp ManyUpperBound PartDesc (Input -> Maybe (p, Input)) (p -> f ()) ([p] -> a)
-  |                          CmdParserChild (Maybe String) Visibility (CmdParser f out ()) (f ()) a
-  |                          CmdParserImpl  out                                a
-  |                          CmdParserReorderStart                             a
-  |                          CmdParserReorderStop                              a
-  |                          CmdParserGrouped String                           a
-  |                          CmdParserGroupEnd                                 a
-  | forall p . Typeable p => CmdParserAlternatives PartDesc [((String -> Bool), CmdParser f out p)] (p -> a)
-
--- | The CmdParser monad type. It is a free monad over some functor but users
--- of butcher don't need to know more than that 'CmdParser' is a 'Monad'.
-type CmdParser f out = Free (CmdParserF f out)
 
 
 -- type CmdParser a = CmdParserM a a
@@ -115,13 +96,13 @@ type CmdParser f out = Free (CmdParserF f out)
 --
 -- Note that there is the '_cmd_out' accessor that contains @Maybe out@ which
 -- might be useful after successful parsing.
-data CommandDesc out = CommandDesc
-  { _cmd_mParent  :: Maybe (Maybe String, CommandDesc out)
+data CommandDesc = CommandDesc
+  { _cmd_mParent  :: Maybe (Maybe String, CommandDesc)
   , _cmd_synopsis :: Maybe PP.Doc
   , _cmd_help     :: Maybe PP.Doc
   , _cmd_parts    :: [PartDesc]
-  , _cmd_out      :: Maybe out
-  , _cmd_children :: Deque (Maybe String, CommandDesc out)
+  , _cmd_hasImpl  :: Bool
+  , _cmd_children :: Deque (Maybe String, CommandDesc)
                      -- we don't use a Map here because we'd like to
                      -- retain the order.
   , _cmd_visibility :: Visibility
@@ -179,24 +160,35 @@ command documentation structure
 
 --
 
-deriving instance Functor (CmdParserF f out)
-deriving instance Functor CommandDesc
-
---
-
 -- | Empty 'CommandDesc' value. Mostly for butcher-internal usage.
-emptyCommandDesc :: CommandDesc out
+emptyCommandDesc :: CommandDesc
 emptyCommandDesc =
-  CommandDesc Nothing Nothing Nothing [] Nothing mempty Visible
+  CommandDesc Nothing Nothing Nothing [] False mempty Visible
 
-instance Show (CommandDesc out) where
+instance Show CommandDesc where
   show c = "Command help=" ++ show (_cmd_help c)
         ++ " synopsis=" ++ show (_cmd_synopsis c)
         ++ " mParent=" ++ show (fst <$> _cmd_mParent c)
-        ++ " out=" ++ maybe "(none)" (\_ -> "(smth)") (_cmd_out c)
         ++ " parts.length=" ++ show (length $ _cmd_parts c)
         ++ " parts=" ++ show (_cmd_parts c)
         ++ " children=" ++ show (fst <$> _cmd_children c)
+
+--
+
+data PartialParseInfo out = PartialParseInfo
+  { _ppi_mainDesc        :: CommandDesc
+  , _ppi_localDesc       :: CommandDesc
+  , _ppi_value           :: Either ParsingError (Maybe out)
+  , _ppi_line            :: Input
+  , _ppi_rest            :: Input
+  , _ppi_lastword        :: String
+  , _ppi_choices         :: [CompletionItem]
+  , _ppi_choicesHelp     :: [(CompletionItem, Maybe String)]
+  , _ppi_choiceCommon    :: String
+  , _ppi_inputSugg       :: String
+  , _ppi_prioDesc        :: Maybe PartDesc
+  , _ppi_interactiveHelp :: Int -> PP.Doc
+  }
 
 --
 

@@ -9,17 +9,19 @@ where
 
 #include "prelude.inc"
 import           Control.Monad.Free
-import qualified Control.Monad.Trans.MultiRWS.Strict as MultiRWSS
-import qualified Control.Monad.Trans.MultiState.Strict as MultiStateS
+import qualified Control.Monad.Trans.MultiRWS.Strict
+                                               as MultiRWSS
+import qualified Control.Monad.Trans.MultiState.Strict
+                                               as MultiStateS
 
-import qualified Text.PrettyPrint as PP
+import qualified Text.PrettyPrint              as PP
 
 import           Data.HList.ContainsType
 
-import           UI.Butcher.Monadic.Internal.Types
-import           UI.Butcher.Monadic.Internal.Core
-import           UI.Butcher.Monadic.Pretty
+import           UI.Butcher.Internal.Monadic
+import           UI.Butcher.Internal.MonadicTypes
 import           UI.Butcher.Monadic.Param
+import           UI.Butcher.Monadic.Pretty
 
 import           System.IO
 
@@ -37,74 +39,77 @@ import           System.IO
 mainFromCmdParser :: CmdParser Identity (IO ()) () -> IO ()
 mainFromCmdParser cmd = do
   progName <- System.Environment.getProgName
-  case checkCmdParser (Just progName) cmd of
-    Left  e -> do
+  case toCmdDesc (Just progName) cmd of
+    Left e -> do
       putStrErrLn
         $ progName
         ++ ": internal error: failed sanity check for butcher main command parser!"
       putStrErrLn $ "(" ++ e ++ ")"
       putStrErrLn $ "aborting."
-    Right _ -> do
+    Right fullDesc -> do
       args <- System.Environment.getArgs
-      case runCmdParser (Just progName) (InputArgs args) cmd of
-        (desc, Left (ParsingError mess remaining)) -> do
+      case runCmdParserCoreFromDesc fullDesc (InputArgs args) cmd of
+        (desc, _, Left err) -> do
           putStrErrLn
             $  progName
             ++ ": error parsing arguments: "
-            ++ case mess of
-                 []    -> ""
-                 (m:_) -> m
-          putStrErrLn $ case remaining of
+            ++ case _pe_messages err of
+                 []      -> ""
+                 (m : _) -> m
+          putStrErrLn $ case _pe_remaining err of
             InputString ""  -> "at the end of input."
             InputString str -> case show str of
               s | length s < 42 -> "at: " ++ s ++ "."
               s                 -> "at: " ++ take 40 s ++ "..\"."
-            InputArgs   []  -> "at the end of input"
-            InputArgs   xs  -> case List.unwords $ show <$> xs of
+            InputArgs [] -> "at the end of input"
+            InputArgs xs -> case List.unwords $ show <$> xs of
               s | length s < 42 -> "at: " ++ s ++ "."
               s                 -> "at: " ++ take 40 s ++ "..\"."
           putStrErrLn $ "usage:"
           printErr $ ppUsage desc
-        (desc, Right out                         ) -> case _cmd_out out of
+        (desc, _, Right out) -> case out of
           Nothing -> do
             putStrErrLn $ "usage:"
             printErr $ ppUsage desc
-          Just a  -> a
+          Just a -> a
 
 -- | Same as mainFromCmdParser, but with one additional twist: You get access
 -- to a knot-tied complete CommandDesc for this full command. Useful in
 -- combination with 'UI.Butcher.Monadic.BuiltinCommands.addHelpCommand'
 mainFromCmdParserWithHelpDesc
-  :: (CommandDesc () -> CmdParser Identity (IO ()) ()) -> IO ()
+  :: (CommandDesc -> CmdParser Identity (IO ()) ()) -> IO ()
 mainFromCmdParserWithHelpDesc cmdF = do
   progName <- System.Environment.getProgName
-  let (checkResult, fullDesc)
+  let (checkResult, optimisticFullDesc) =
+        ( toCmdDesc (Just progName) (cmdF optimisticFullDesc)
+        , either (const emptyCommandDesc) id $ checkResult
+        )
         -- knot-tying at its finest..
-        = ( checkCmdParser (Just progName) (cmdF fullDesc)
-          , either (const emptyCommandDesc) id $ checkResult
-          )
   case checkResult of
     Left e -> do
-      putStrErrLn $ progName ++ ": internal error: failed sanity check for butcher main command parser!"
+      putStrErrLn
+        $ progName
+        ++ ": internal error: failed sanity check for butcher main command parser!"
       putStrErrLn $ "(" ++ e ++ ")"
       putStrErrLn $ "aborting."
-    Right _ -> do
+    Right fullDesc -> do
       args <- System.Environment.getArgs
-      case runCmdParser (Just progName) (InputArgs args) (cmdF fullDesc) of
-        (desc, Left (ParsingError mess remaining)) -> do
-          putStrErrLn $ progName ++ ": error parsing arguments: " ++ head mess
-          putStrErrLn $ case remaining of
-            InputString "" -> "at the end of input."
+      case runCmdParserCoreFromDesc fullDesc (InputArgs args) (cmdF fullDesc) of
+        (desc, _, Left err) -> do
+          putStrErrLn $ progName ++ ": error parsing arguments: " ++ head
+            (_pe_messages err)
+          putStrErrLn $ case _pe_remaining err of
+            InputString ""  -> "at the end of input."
             InputString str -> case show str of
               s | length s < 42 -> "at: " ++ s ++ "."
-              s -> "at: " ++ take 40 s ++ "..\"."
+              s                 -> "at: " ++ take 40 s ++ "..\"."
             InputArgs [] -> "at the end of input"
             InputArgs xs -> case List.unwords $ show <$> xs of
               s | length s < 42 -> "at: " ++ s ++ "."
-              s -> "at: " ++ take 40 s ++ "..\"."
+              s                 -> "at: " ++ take 40 s ++ "..\"."
           putStrErrLn $ "usage:"
           printErr $ ppUsage desc
-        (desc, Right out) -> case _cmd_out out of
+        (desc, _, Right out) -> case out of
           Nothing -> do
             putStrErrLn $ "usage:"
             printErr $ ppUsage desc

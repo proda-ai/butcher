@@ -4,24 +4,22 @@ module UI.Butcher.Monadic
     Input (..)
   , CmdParser
   , ParsingError (..)
-  , CommandDesc(_cmd_out)
-  , cmd_out
+  , PartialParseInfo (..)
+  , CommandDesc
   , -- * Run or Check CmdParsers
-    runCmdParserSimple
+    runCmdParserSimpleString
   , runCmdParser
-  , runCmdParserExt
   , runCmdParserA
-  , runCmdParserAExt
+  , runCmdParserFromDesc
+  , runCmdParserAFromDesc
   , runCmdParserWithHelpDesc
-  , checkCmdParser
+  , toCmdDesc
   , -- * Building CmdParsers
     module UI.Butcher.Monadic.Command
     -- * PrettyPrinting CommandDescs (usage/help)
   , module UI.Butcher.Monadic.Pretty
     -- * Wrapper around System.Environment.getArgs
   , module UI.Butcher.Monadic.IO
-    -- * Utilities for interactive feedback of commandlines (completions etc.)
-  , module UI.Butcher.Monadic.Interactive
   -- , cmds
   -- , sample
   -- , test
@@ -45,14 +43,14 @@ where
 
 #include "prelude.inc"
 
-import UI.Butcher.Monadic.Types
-import UI.Butcher.Monadic.Internal.Types
-import UI.Butcher.Monadic.Command
-import UI.Butcher.Monadic.BuiltinCommands
-import UI.Butcher.Monadic.Internal.Core
-import UI.Butcher.Monadic.Pretty
-import UI.Butcher.Monadic.IO
-import UI.Butcher.Monadic.Interactive
+import           UI.Butcher.Internal.Monadic
+import           UI.Butcher.Internal.MonadicTypes
+import           UI.Butcher.Internal.Interactive
+import           UI.Butcher.Monadic.BuiltinCommands
+import           UI.Butcher.Monadic.Command
+import           UI.Butcher.Monadic.IO
+import           UI.Butcher.Monadic.Pretty
+import           UI.Butcher.Monadic.Types
 
 import qualified Text.PrettyPrint as PP
 
@@ -68,7 +66,7 @@ import qualified Text.PrettyPrint as PP
 -- to a knot-tied complete CommandDesc for this full command. Useful in
 -- combination with 'UI.Butcher.Monadic.BuiltinCommands.addHelpCommand'.
 --
--- Note that the @CommandDesc ()@ in the output is _not_ the same value as the
+-- Note that the @CommandDesc@ in the output is _not_ the same value as the
 -- parameter passed to the parser function: The output value contains a more
 -- "shallow" description. This is more efficient for complex CmdParsers when
 -- used interactively, because non-relevant parts of the CmdParser are not
@@ -76,26 +74,77 @@ import qualified Text.PrettyPrint as PP
 runCmdParserWithHelpDesc
   :: Maybe String -- ^ program name to be used for the top-level @CommandDesc@
   -> Input -- ^ input to be processed
-  -> (CommandDesc () -> CmdParser Identity out ()) -- ^ parser to use
-  -> (CommandDesc (), Either ParsingError (CommandDesc out))
+  -> (CommandDesc -> CmdParser Identity out ()) -- ^ parser to use
+  -> (CommandDesc, Input, Either ParsingError (Maybe out))
 runCmdParserWithHelpDesc mProgName input cmdF =
   let (checkResult, fullDesc)
         -- knot-tying at its finest..
-        = ( checkCmdParser mProgName (cmdF fullDesc)
+        = ( toCmdDesc mProgName (cmdF fullDesc)
           , either (const emptyCommandDesc) id $ checkResult
           )
-  in runCmdParser mProgName input (cmdF fullDesc)
+  in runCmdParserCoreFromDesc fullDesc input (cmdF fullDesc)
 
 
 -- | Wrapper around 'runCmdParser' for very simple usage: Accept a @String@
 -- input and return only the output from the parser, or a plain error string
 -- on failure.
-runCmdParserSimple :: String -> CmdParser Identity out () -> Either String out
-runCmdParserSimple s p = case snd $ runCmdParser Nothing (InputString s) p of
-  Left e -> Left $ parsingErrorString e
-  Right desc ->
-    maybe (Left "command has no implementation") Right $ _cmd_out desc
+runCmdParserSimpleString :: String -> CmdParser Identity out () -> Either String out
+runCmdParserSimpleString s p = case toCmdDesc Nothing p of
+  Left err -> Left err
+  Right fullDesc -> 
+    case runCmdParserCoreFromDesc fullDesc (InputString s) p of
+      (_, _, Left e) -> Left $ parsingErrorString e
+      (_, _, Right outM) ->
+        maybe (Left "command has no implementation") Right $ outM
 
+
+runCmdParser
+  :: forall out
+   . Maybe String -- ^ top-level command name
+  -> Input
+  -> CmdParser Identity out ()
+  -> PartialParseInfo out
+runCmdParser mTopLevel input parser =
+  let topDesc = case toCmdDesc mTopLevel parser of
+        Left  err -> error err
+        Right d   -> d
+  in  runCmdParserFromDesc topDesc input parser
+
+runCmdParserFromDesc
+  :: forall out
+   . CommandDesc
+  -> Input
+  -> CmdParser Identity out ()
+  -> PartialParseInfo out
+runCmdParserFromDesc topDesc input parser =
+  let (localDesc, remainingInput, result) =
+        runCmdParserCoreFromDesc topDesc input parser
+  in  combinedCompletion input topDesc localDesc remainingInput result
+
+runCmdParserA
+  :: forall f out
+   . Applicative f
+  => Maybe String -- ^ top-level command name
+  -> Input
+  -> CmdParser f out ()
+  -> f (PartialParseInfo out)
+runCmdParserA mTopLevel input parser =
+  let topDesc = case toCmdDesc mTopLevel parser of
+        Left  err -> error err
+        Right d   -> d
+  in  runCmdParserAFromDesc topDesc input parser
+
+runCmdParserAFromDesc
+  :: forall f out
+   . Applicative f
+  => CommandDesc
+  -> Input
+  -> CmdParser f out ()
+  -> f (PartialParseInfo out)
+runCmdParserAFromDesc topDesc input parser =
+  let mapper (localDesc, remainingInput, result) =
+        combinedCompletion input topDesc localDesc remainingInput result
+  in  mapper <$> runCmdParserCoreFromDescA topDesc input parser
 
 --------------------------------------
 -- all below is for testing purposes
@@ -155,22 +204,23 @@ data Sample = Sample
 -- test s = OPA.execParserPure OPA.defaultPrefs (OPA.ParserInfo sample True mempty mempty mempty (-13) True) (List.words s)
 
 _test2 :: IO ()
-_test2 = case checkCmdParser (Just "butcher") _cmds of
+_test2 = case toCmdDesc (Just "butcher") _cmds of
   Left e -> putStrLn $ "LEFT: " ++ e
   Right desc -> do
     print $ ppUsage desc
     print $ maybe undefined id $ ppUsageAt ["hello"] desc
 
 _test3 :: String -> IO ()
-_test3 s = case runCmdParser (Just "butcher") (InputString s) _cmds of
-  (desc, Left e) -> do
-    print e
-    print $ ppHelpShallow desc
-    _cmd_mParent desc `forM_` \(_, d) -> do
-      print $ ppUsage d
-  (desc, Right out) -> do
-    case _cmd_out out of
-      Nothing -> do
-        putStrLn "command is missing implementation!"
-        print $ ppHelpShallow desc
-      Just f -> f
+_test3 s = do
+  case _ppi_value info of
+    Left err -> do
+      print err
+      print $ ppHelpShallow (_ppi_localDesc info)
+      _cmd_mParent (_ppi_localDesc info) `forM_` \(_, d) -> do
+        print $ ppUsage d
+    Right Nothing -> do
+      putStrLn "command is missing implementation!"
+      print $ ppHelpShallow (_ppi_localDesc info)
+    Right (Just f) -> f
+ where
+  info = runCmdParser Nothing (InputString s) _cmds

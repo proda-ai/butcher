@@ -3,7 +3,6 @@
 -- | Types used in the butcher interface.
 module UI.Butcher.Monadic.Types
   ( CommandDesc(..)
-  , cmd_out
   , CmdParser
   , Input (..)
   , ParsingError (..)
@@ -19,4 +18,4 @@ where
 
 
 
-import           UI.Butcher.Monadic.Internal.Types
+import           UI.Butcher.Internal.MonadicTypes
