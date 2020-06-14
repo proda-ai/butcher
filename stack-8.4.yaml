@@ -43,6 +43,7 @@ extra-deps:
 - extra-1.7.1
 - strict-list-0.1.5
 - barbies-2.0.1.0
+- hsc2hs-0.68.7
 
 # Override default flag values for local packages and extra-deps
 # flags: {}

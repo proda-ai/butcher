@@ -6,22 +6,23 @@
 , index-sha256 ? null
 , plan-sha256 ? null
 , materialized ? null
-, configureArgs ? null
+, configureArgs ? ""
 }:
 let
-  butcher-plan = pkgs.haskell-nix.importAndFilterProject (pkgs.haskell-nix.callCabalProjectToNix {
+  butcher-nix = pkgs.haskell-nix.callCabalProjectToNix {
     src = cleanedSource;
     inherit index-state index-sha256 plan-sha256 materialized configureArgs;
     # ghc = pkgs.haskell-nix.compiler.${ghc-ver};
     compiler-nix-name = ghc-ver;
-  });
+  };
+  butcher-plan = pkgs.haskell-nix.importAndFilterProject { inherit (butcher-nix) projectNix sourceRepos src; };
 in rec {
-  inherit butcher-plan pkgs;
+  inherit butcher-nix butcher-plan pkgs;
 
   hsPkgs = 
     let
     in let pkg-set = pkgs.haskell-nix.mkCabalProjectPkgSet
-              { plan-pkgs = butcher-plan.pkgs;
+              { plan-pkgs = butcher-plan;
                 pkg-def-extras = pkg-def-extras;
                 modules = [ 
                   { ghc.package = pkgs.haskell-nix.compiler.${ghc-ver}; }
@@ -47,9 +48,11 @@ in rec {
     # tools = { cabal = "3.2.0.0"; };
     # See overlays/tools.nix for more details
 
+    tools = { ghcid = "0.8.7"; cabal = "3.2.0.0"; };
+
     # Some you may need to get some other way.
     buildInputs = with pkgs.haskellPackages;
-      [ pkgs.haskell-nix.cabal-install ghcid bash pkgs.nix ];
+      [ bash pkgs.nix ];
 
     # Prevents cabal from choosing alternate plans, so that
     # *all* dependencies are provided by Nix.

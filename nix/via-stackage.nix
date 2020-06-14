@@ -1,4 +1,5 @@
 { pkgs
+, ghc-ver
 , cleanedSource
 , stackFile
 , pkg-def-extras ? []
@@ -47,12 +48,12 @@ let
     stackYaml = stackFile;
   };
   hsPkgs = (pkgs.haskell-nix.mkStackPkgSet {
-    stack-pkgs = butcher-plan.pkgs;
+    stack-pkgs = butcher-plan;
     pkg-def-extras = pkg-def-extras;
     modules = pkgs.lib.singleton (pkgs.haskell-nix.mkCacheModule generatedCache);
   }).config.hsPkgs;
 in {
-  inherit butcher-plan hsPkgs pkgs;
+  inherit butcher-nix butcher-plan hsPkgs pkgs;
   inherit (hsPkgs) butcher;
   inherit (hsPkgs.butcher) checks;
   shell = hsPkgs.shellFor {
@@ -71,9 +72,11 @@ in {
     # tools = { cabal = "3.2.0.0"; };
     # See overlays/tools.nix for more details
 
+    tools = { ghcid = "0.8.7"; cabal = "3.2.0.0"; };
+
     # Some you may need to get some other way.
     buildInputs = with pkgs.haskellPackages;
-      [ cabal-install ghcid bash pkgs.nix ];
+      [ bash pkgs.nix ];
 
     # Prevents cabal from choosing alternate plans, so that
     # *all* dependencies are provided by Nix.
