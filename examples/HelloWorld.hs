@@ -1,6 +1,10 @@
-## CmdParser definition
+module Main where
 
-~~~~.hs
+import           UI.Butcher.Monadic
+
+
+
+main :: IO ()
 main = mainFromCmdParserWithHelpDesc $ \helpDesc -> do
 
   addCmdSynopsis "a simple butcher example program"
@@ -18,64 +22,10 @@ main = mainFromCmdParserWithHelpDesc $ \helpDesc -> do
 
   short <- addSimpleBoolFlag "" ["short"]
     (flagHelpStr "make the greeting short")
-  name <- addStringParam "NAME"
+  name <- addParamString "NAME"
     (paramHelpStr "your name, so you can be greeted properly")
 
   addCmdImpl $ do
     if short
       then putStrLn $ "hi, " ++ name ++ "!"
       else putStrLn $ "hello, " ++ name ++ ", welcome from butcher!"
-~~~~
-
-## Program behaviour (executable is named `example`):
-
-~~~~
-> ./example
-example: error parsing arguments: could not parse NAME
-at the end of input
-usage:
-example [--short] NAME [version | help]
-~~~~
-
----
-
-~~~~
-> ./example help
-NAME
-
-  example - a simple butcher example program
-
-USAGE
-
-  example [--short] NAME [version | help]
-
-DESCRIPTION
-
-  a very long help document
-
-ARGUMENTS
-
-  --short             make the greeting short
-  NAME                your name, so you can be greeted properly
-~~~~
-
----
-
-~~~~
-> ./example garfield
-hello, garfield, welcome from butcher!
-~~~~
-
----
-
-~~~~
-> ./example --short garfield
-hi, garfield!
-~~~~
-
----
-
-~~~~
-> ./example version --porcelain
-1.0
-~~~~
