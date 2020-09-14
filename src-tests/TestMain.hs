@@ -173,8 +173,8 @@ testCmd3 :: CmdParser (StateS.State Int) () ()
 testCmd3 = do
   addCmd "abc" $ do
     reorderStart
-    addSimpleFlagA "f" ["flong"] mempty (StateS.modify (+ 1))
-    addSimpleFlagA "g" ["glong"] mempty (StateS.modify (+ 2))
+    addSimpleBoolFlagA "f" ["flong"] mempty (StateS.modify (+ 1))
+    addSimpleBoolFlagA "g" ["glong"] mempty (StateS.modify (+ 2))
     reorderStop
     addCmdImpl ()
   addCmd "def" $ do

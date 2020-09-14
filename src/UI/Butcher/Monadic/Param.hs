@@ -21,13 +21,6 @@ module UI.Butcher.Monadic.Param
   , addParamNoFlagStrings
   , addParamRestOfInput
   , addParamRestOfInputRaw
-  , -- * Deprecated for more consistent naming
-    addReadParam
-  , addReadParamOpt
-  , addStringParam
-  , addStringParamOpt
-  , addStringParams
-  , addRestOfInputStringParam
   )
 where
 
@@ -107,15 +100,7 @@ addParamRead
   => String -- ^ paramater name, for use in usage/help texts
   -> Param a -- ^ properties
   -> CmdParser f out a
-addParamRead = addReadParam
-{-# DEPRECATED addReadParam "use 'addParamRead'" #-}
-addReadParam
-  :: forall f out a
-   . (Applicative f, Typeable a, Show a, Text.Read.Read a)
-  => String -- ^ paramater name, for use in usage/help texts
-  -> Param a -- ^ properties
-  -> CmdParser f out a
-addReadParam name par = addCmdPart desc parseF
+addParamRead name par = addCmdPart desc parseF
  where
   desc :: PartDesc
   desc =
@@ -136,15 +121,7 @@ addParamReadOpt
   => String -- ^ paramater name, for use in usage/help texts
   -> Param a -- ^ properties
   -> CmdParser f out (Maybe a)
-addParamReadOpt = addReadParamOpt
-{-# DEPRECATED addReadParamOpt "use 'addParamReadOpt'" #-}
-addReadParamOpt
-  :: forall f out a
-   . (Applicative f, Typeable a, Text.Read.Read a)
-  => String -- ^ paramater name, for use in usage/help texts
-  -> Param a -- ^ properties
-  -> CmdParser f out (Maybe a)
-addReadParamOpt name par = addCmdPart desc parseF
+addParamReadOpt name par = addCmdPart desc parseF
  where
   desc :: PartDesc
   desc =
@@ -167,15 +144,7 @@ addParamString
   => String
   -> Param String
   -> CmdParser f out String
-addParamString = addStringParam
-{-# DEPRECATED addStringParam "use 'addParamString'" #-}
-addStringParam
-  :: forall f out
-   . (Applicative f)
-  => String
-  -> Param String
-  -> CmdParser f out String
-addStringParam name par = addCmdPartInp desc parseF
+addParamString name par = addCmdPartInp desc parseF
  where
   desc :: PartDesc
   desc =
@@ -200,15 +169,7 @@ addParamStringOpt
   => String
   -> Param Void
   -> CmdParser f out (Maybe String)
-addParamStringOpt = addStringParamOpt
-{-# DEPRECATED addStringParamOpt "use 'addParamStringOpt'" #-}
-addStringParamOpt
-  :: forall f out
-   . (Applicative f)
-  => String
-  -> Param Void
-  -> CmdParser f out (Maybe String)
-addStringParamOpt name par = addCmdPartInp desc parseF
+addParamStringOpt name par = addCmdPartInp desc parseF
  where
   desc :: PartDesc
   desc =
@@ -235,15 +196,7 @@ addParamStrings
   => String
   -> Param Void
   -> CmdParser f out [String]
-addParamStrings = addStringParams
-{-# DEPRECATED addStringParams "use 'addParamStrings'" #-}
-addStringParams
-  :: forall f out
-   . (Applicative f)
-  => String
-  -> Param Void
-  -> CmdParser f out [String]
-addStringParams name par = addCmdPartManyInp ManyUpperBoundN desc parseF
+addParamStrings name par = addCmdPartManyInp ManyUpperBoundN desc parseF
  where
   desc :: PartDesc
   desc =
@@ -345,15 +298,7 @@ addParamRestOfInput
   => String
   -> Param Void
   -> CmdParser f out String
-addParamRestOfInput = addRestOfInputStringParam
-{-# DEPRECATED addRestOfInputStringParam "use 'addParamRestOfInput'" #-}
-addRestOfInputStringParam
-  :: forall f out
-   . (Applicative f)
-  => String
-  -> Param Void
-  -> CmdParser f out String
-addRestOfInputStringParam name par = addCmdPartInp desc parseF
+addParamRestOfInput name par = addCmdPartInp desc parseF
  where
   desc :: PartDesc
   desc =

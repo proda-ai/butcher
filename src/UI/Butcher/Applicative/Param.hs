@@ -45,6 +45,8 @@ import           UI.Butcher.Internal.Applicative
 import           UI.Butcher.Internal.Pretty
 
 
+-- | param-description monoid. You probably won't need to use the constructor;
+-- mzero or any (<>) of param(Help|Default|Suggestion) works well.
 data Param p = Param
   { _param_default     :: Maybe p
   , _param_help        :: Maybe PP.Doc

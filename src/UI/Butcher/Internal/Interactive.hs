@@ -125,7 +125,7 @@ partDescComplsWithHelp mHelp = \case
 
 
 -- | Obtains a list of "expected"/potential strings for a command part
--- described in the 'PartDesc'. In constrast to the 'simpleCompletion'
+-- described in the 'PartDesc'. In constrast to the 'combinedCompletion'
 -- function this function does not take into account any current input, and
 -- consequently the output elements can in general not be appended to partial
 -- input to form valid input.
@@ -148,7 +148,7 @@ partDescStrings = \case
 
 
 -- | Obtains a list of "expected"/potential strings for a command part
--- described in the 'PartDesc'. In constrast to the 'simpleCompletion'
+-- described in the 'PartDesc'. In constrast to the 'combinedCompletion'
 -- function this function does not take into account any current input, and
 -- consequently the output elements can in general not be appended to partial
 -- input to form valid input.

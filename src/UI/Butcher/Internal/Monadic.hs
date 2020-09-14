@@ -29,10 +29,6 @@ module UI.Butcher.Internal.Monadic
   , reorderStop
   , toCmdDesc
   , traverseBarbie
-  -- , runCmdParser
-  -- , runCmdParserA
-  -- , runCmdParserCore
-  -- , runCmdParserCoreA
   , runCmdParserCoreFromDesc
   , runCmdParserCoreFromDescA
   , mapOut
@@ -109,7 +105,7 @@ mModify f = mGet >>= mSet . f
 -- be the implicit top-level command.
 --
 -- Adding a second synopsis will overwrite a previous synopsis;
--- 'checkCmdParser' will check that you don't (accidentally) do this however.
+-- 'toCmdDesc' will check that you don't (accidentally) do this however.
 addCmdSynopsis :: String -> CmdParser f out ()
 addCmdSynopsis s = liftF $ CmdParserSynopsis s ()
 
@@ -117,7 +113,7 @@ addCmdSynopsis s = liftF $ CmdParserSynopsis s ()
 -- will be the implicit top-level command.
 --
 -- Adding a second document will overwrite a previous document;
--- 'checkCmdParser' will check that you don't (accidentally) do this however.
+-- 'toCmdDesc' will check that you don't (accidentally) do this however.
 addCmdHelp :: PP.Doc -> CmdParser f out ()
 addCmdHelp s = liftF $ CmdParserHelp s ()
 
@@ -285,7 +281,7 @@ addCmdImpl o = liftF $ CmdParserImpl o ()
 -- be unexpected because params may match on any input.
 --
 -- Note that start/stop must occur in pairs, and it will be a runtime error
--- if you mess this up. Use 'checkCmdParser' if you want to check all parts
+-- if you mess this up. Use 'toCmdDesc' if you want to check all parts
 -- of your 'CmdParser' without providing inputs that provide 100% coverage.
 reorderStart :: CmdParser f out ()
 reorderStart = liftF $ CmdParserReorderStart ()
@@ -294,8 +290,10 @@ reorderStart = liftF $ CmdParserReorderStart ()
 reorderStop :: CmdParser f out ()
 reorderStop = liftF $ CmdParserReorderStop ()
 
--- | Takes a barbie over a parser and returns a parser that returns parsed
--- values, in the same structure.
+-- | If you have a higher-kinded config type (let's assume it is a plain
+-- record) then this turns a record whose fields are @CmdParser@s over
+-- different values into a CmdParser that returns a record with the parsed
+-- values in the fields.
 traverseBarbie
   :: (Barbies.BareB c, Barbies.TraversableB (c Barbies.Covered))
   => c Barbies.Covered (CmdParser f out)
@@ -498,70 +496,21 @@ data CoreInterpreterState f out = CoreInterpreterState
   }
 
 
-{-
-runCmdParser
-  :: forall out
-   . Maybe String -- ^ top-level command name
-  -> Input
-  -> CmdParser Identity out ()
-  -> Either ParsingError (Maybe out)
-runCmdParser mTopLevel initialInput initialParser =
-  let (_, _, _, r) = runCmdParserCore mTopLevel initialInput initialParser
-  in r
-
-runCmdParserA
-  :: forall f out
-   . Applicative f
-  => Maybe String -- ^ top-level command name
-  -> Input
-  -> CmdParser f out ()
-  -> f (Either ParsingError (Maybe out))
-runCmdParserA mTopLevel initialInput initialParser =
-  let f (_, _, r) = r
-  in f <$> snd (runCmdParserCoreA mTopLevel initialInput initialParser)
-
-
-runCmdParserCore
-  :: forall out
-   . Maybe String -- ^ top-level command name
-  -> Input
-  -> CmdParser Identity out ()
-  -> (CommandDesc, CommandDesc, Input, Either ParsingError (Maybe out))
-runCmdParserCore mTopLevel initialInput initialParser =
-  let topDesc = case toCmdDesc mTopLevel initialParser of
-        Left  err -> error err
-        Right d   -> d
-      (finalDesc, finalInput, result) =
-        runCmdParserCoreFromDesc topDesc initialInput initialParser
-  in  (topDesc, finalDesc, finalInput, result)
-
-runCmdParserCoreA
-  :: forall f out
-   . Applicative f
-  => Maybe String -- ^ top-level command name
-  -> Input
-  -> CmdParser f out ()
-  -> (CommandDesc, f (CommandDesc, Input, Either ParsingError (Maybe out)))
-runCmdParserCoreA mTopLevel initialInput initialParser =
-  let topDesc = case toCmdDesc mTopLevel initialParser of
-        Left  err -> error err
-        Right d   -> d
-  in  (topDesc, runCmdParserCoreFromDescA topDesc initialInput initialParser)
--}
-
 -- | Run a @CmdParser@ on the given input, returning:
 --
 -- a) A @CommandDesc ()@ that accurately represents the subcommand that was
 --    reached, even if parsing failed. Because this is returned always, the
 --    argument is @()@ because "out" requires a successful parse.
 --
--- b) Either an error or the result of a successful parse, including a proper
+-- b) The remaining input, i.e. the left-over part that did not parse
+--    successfully.
+--    For some input "myprog foo bar -v --wrong" where parsing fails at
+--    "--wrong", this will contain the full "-v --wrong". Useful for
+--    interactive feedback stuff.
+
+-- c) Either an error or the result of a successful parse, including a proper
 --    "CommandDesc out" from which an "out" can be extracted (presuming that
 --    the command has an implementation).
--- | Like 'runCmdParser', but also returning all input after the last
--- successfully parsed subcommand. E.g. for some input
--- "myprog foo bar -v --wrong" where parsing fails at "--wrong", this will
--- contain the full "-v --wrong". Useful for interactive feedback stuff.
 runCmdParserCoreFromDesc
   :: CommandDesc -- ^ cached desc
   -> Input -- ^ input to be processed

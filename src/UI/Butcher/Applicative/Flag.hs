@@ -42,6 +42,8 @@ import           Debug.Trace
 
 
 
+-- | flag-description monoid. You probably won't need to use the constructor;
+-- mzero or any (<>) of flag(Help|Default) works well.
 data Flag a = Flag
   { _flag_help       :: Maybe PP.Doc
   , _flag_default    :: Maybe a
@@ -83,6 +85,7 @@ wrapHidden f = case _flag_visibility f of
   Hidden  -> PartHidden
 
 
+-- | A no-parameter flag where non-occurence means False, occurence means True.
 addSimpleBoolFlag :: String -> [String] -> Flag Void -> CmdParser out Bool
 addSimpleBoolFlag shorts longs opts = fmap (not . null)
   $ addCmdPartMany ManyUpperBound1 (wrapHidden opts desc) parseF
@@ -134,7 +137,7 @@ addSimpleCountFlag shorts longs flag = fmap length
             allStrs
           )
 
-
+-- | One-argument flag, where the argument is parsed via its Read instance.
 addFlagReadParam
   :: forall out p
    . (Typeable p, Read p, Show p)

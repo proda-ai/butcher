@@ -98,6 +98,10 @@ runCmdParserSimpleString s p = case toCmdDesc Nothing p of
         maybe (Left "command has no implementation") Right $ outM
 
 
+-- | Runs a 'CmdParser' on the given 'Input', returning the 'PartialParseInfo'
+-- struct that encodes both general success/failure and that has additional
+-- fields that are useful for interactive help or feedback to the user
+-- (think something like "did you mean to use command foo?").
 runCmdParser
   :: forall out
    . Maybe String -- ^ top-level command name
@@ -110,6 +114,13 @@ runCmdParser mTopLevel input parser =
         Right d   -> d
   in  runCmdParserFromDesc topDesc input parser
 
+-- | Runs a parser given 'Input', a 'CmdParser' and the 'CommandDesc' that was
+-- derived from the 'CmdParser' using 'toCmdDesc'.
+-- 'runCmdParser' will do both steps, but this is useful
+-- a) if the 'CommandDesc' can be re-used because the 'Input' changes but the
+-- 'CmdParser' does not.
+-- b) because in some (rare) cases 'toCmdDesc' may fail, and calling it
+-- explicitly allows handling that case properly.
 runCmdParserFromDesc
   :: forall out
    . CommandDesc
@@ -121,6 +132,7 @@ runCmdParserFromDesc topDesc input parser =
         runCmdParserCoreFromDesc topDesc input parser
   in  combinedCompletion input topDesc localDesc remainingInput result
 
+-- | The Applicative-enabled version of 'runCmdParser'.
 runCmdParserA
   :: forall f out
    . Applicative f
@@ -134,6 +146,7 @@ runCmdParserA mTopLevel input parser =
         Right d   -> d
   in  runCmdParserAFromDesc topDesc input parser
 
+-- | The Applicative-enabled version of 'runCmdParserA'.
 runCmdParserAFromDesc
   :: forall f out
    . Applicative f

@@ -289,6 +289,10 @@ runCmdParserCoreFromDesc input desc parser =
         InputArgs{} -> return ()
 
 
+-- | If you have a higher-kinded config type (let's assume it is a plain
+-- record) then this turns a record whose fields are @CmdParser@s over
+-- different values into a CmdParser that returns a record with the parsed
+-- values in the fields.
 traverseBarbie
   :: (Barbies.BareB c, Barbies.TraversableB (c Barbies.Covered))
   => c Barbies.Covered (CmdParser out)
@@ -298,6 +302,9 @@ traverseBarbie k = do
   pure $ Barbies.bstrip r
 
 
+-- | Add part that is expected to occur exactly once in the input.
+-- The EpsilonFlag specifies whether succeeding on empty input is permitted
+-- or not.
 addCmdPart
   :: Typeable p
   => PartDesc
@@ -305,6 +312,9 @@ addCmdPart
   -> CmdParser out p
 addCmdPart p f = liftAp $ CmdParserPartInp p (convertStringToInputParse f) id
 
+-- | Add part that is not required to occur, and can occur as often as
+-- indicated by 'ManyUpperBound'. The EpsilonFlag specifies whether succeeding
+-- on empty input is permitted or not.
 addCmdPartMany
   :: Typeable p
   => ManyUpperBound
@@ -314,6 +324,12 @@ addCmdPartMany
 addCmdPartMany b p f =
   liftAp $ CmdParserPartManyInp b p (convertStringToInputParse f) id
 
+-- | Add part that is expected to occur exactly once in the input.
+-- The EpsilonFlag specifies whether succeeding on empty input is permitted
+-- or not.
+--
+-- Only difference to 'addCmdPart' is that it accepts 'Input', i.e. can
+-- behave differently for @String@ and @[String]@ input.
 addCmdPartInp
   :: Typeable p
   => PartDesc
@@ -321,6 +337,13 @@ addCmdPartInp
   -> CmdParser out p
 addCmdPartInp p f = liftAp $ CmdParserPartInp p f id
 
+-- | Add part that is not required to occur, and can occur as often as
+-- indicated by 'ManyUpperBound'.
+-- The EpsilonFlag specifies whether succeeding on empty input is permitted
+-- or not.
+--
+-- Only difference to 'addCmdPart' is that it accepts 'Input', i.e. can
+-- behave differently for @String@ and @[String]@ input.
 addCmdPartManyInp
   :: Typeable p
   => ManyUpperBound
@@ -329,9 +352,27 @@ addCmdPartManyInp
   -> CmdParser out [p]
 addCmdPartManyInp b p f = liftAp $ CmdParserPartManyInp b p f id
 
+-- | Best explained via example:
+--
+-- > do
+-- >   reorderStart
+-- >   bright <- addSimpleBoolFlag "" ["bright"] mempty
+-- >   yellow <- addSimpleBoolFlag "" ["yellow"] mempty
+-- >   reorderStop
+-- >   ..
+--
+-- will accept any inputs "" "--bright" "--yellow" "--bright --yellow" "--yellow --bright".
+--
+-- This works for any flags/params, but bear in mind that the results might
+-- be unexpected because params may match on any input.
+--
+-- Note that start/stop must occur in pairs, and it will be a runtime error
+-- if you mess this up. Use 'toCmdDesc' if you want to check all parts
+-- of your 'CmdParser' without providing inputs that provide 100% coverage.
 reorderStart :: CmdParser out ()
 reorderStart = liftAp $ CmdParserReorderStart ()
 
+-- | See 'reorderStart'
 reorderStop :: CmdParser out ()
 reorderStop = liftAp $ CmdParserReorderStop ()
 

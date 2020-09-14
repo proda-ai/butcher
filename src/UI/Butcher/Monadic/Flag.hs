@@ -17,8 +17,8 @@ module UI.Butcher.Monadic.Flag
   , flagDefault
   , flagHidden
   , addSimpleBoolFlag
+  , addSimpleBoolFlagA
   , addSimpleCountFlag
-  , addSimpleFlagA
   , addFlagReadParam
   , addFlagReadParams
   -- , addFlagReadParamA
@@ -132,14 +132,14 @@ addSimpleBoolFlag
 addSimpleBoolFlag shorts longs flag =
   addSimpleBoolFlagAll shorts longs flag (pure ())
 
--- | Applicative-enabled version of 'addSimpleFlag'
-addSimpleFlagA
+-- | Applicative-enabled version of 'addSimpleBoolFlag'
+addSimpleBoolFlagA
   :: String -- ^ short flag chars, i.e. "v" for -v
   -> [String] -- ^ list of long names, e.g. ["verbose"]
   -> Flag Void -- ^ properties
   -> f () -- ^ action to execute whenever this matches
   -> CmdParser f out ()
-addSimpleFlagA shorts longs flag act =
+addSimpleBoolFlagA shorts longs flag act =
   void $ addSimpleBoolFlagAll shorts longs flag act
 
 addSimpleBoolFlagAll

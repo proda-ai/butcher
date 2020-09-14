@@ -66,6 +66,8 @@ data CmdParserF out a
   | CmdParserReorderStart                    a
   | CmdParserReorderStop                     a
 
+-- | The CmdParser monad type. It is a free applicative over some functor but
+-- users of butcher don't need to know more than that 'CmdParser' is a 'Monad'.
 type CmdParser out = Ap (CmdParserF out)
 
 data EnrichedCmdParserF s out a

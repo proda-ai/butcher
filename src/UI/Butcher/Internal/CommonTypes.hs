@@ -64,6 +64,9 @@ data ManyUpperBound
   | ManyUpperBoundN
   deriving Eq
 
+-- | Flag for command visibility. Hidden commands will not show up in generated
+-- help documents or listed as alternatives for possible command completions
+-- etc.
 data Visibility = Visible | Hidden
   deriving (Show, Eq)
 
@@ -91,11 +94,8 @@ data Visibility = Visible | Hidden
 ---------
 
 -- | A representation/description of a command parser built via the
--- 'CmdParser' monad. Can be transformed into a pretty Doc to display
+-- @CmdParser@ monad. Can be transformed into a pretty Doc to display
 -- as usage/help via 'UI.Butcher.Monadic.Pretty.ppUsage' and related functions.
---
--- Note that there is the '_cmd_out' accessor that contains @Maybe out@ which
--- might be useful after successful parsing.
 data CommandDesc = CommandDesc
   { _cmd_mParent  :: Maybe (Maybe String, CommandDesc)
   , _cmd_synopsis :: Maybe PP.Doc
@@ -175,6 +175,11 @@ instance Show CommandDesc where
 
 --
 
+-- | Return type of the parsing function. This has a lot of fields, because
+-- not only does it encode just parsing failure or success
+-- (see @_ppi_value :: Either ParsingError (Maybe out)@) but also it encodes
+-- information about partially succeeding parses. For example, the
+-- '_ppi_inputSugg' field serves as a tab-completion value.
 data PartialParseInfo out = PartialParseInfo
   { _ppi_mainDesc        :: CommandDesc
   , _ppi_localDesc       :: CommandDesc

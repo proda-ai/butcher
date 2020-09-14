@@ -12,7 +12,7 @@
 --
 -- > return ()
 --
--- But not very interesting - you won't get an 'out' value from this (e.g. an
+-- But not very interesting - you won't get an @out@ value from this (e.g. an
 -- IO-action to execute) when this matches (on the empty input).
 --
 -- > do
