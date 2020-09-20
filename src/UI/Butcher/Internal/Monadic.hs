@@ -294,6 +294,8 @@ reorderStop = liftF $ CmdParserReorderStop ()
 -- record) then this turns a record whose fields are @CmdParser@s over
 -- different values into a CmdParser that returns a record with the parsed
 -- values in the fields.
+--
+-- See the BarbieParsing example included in this package.
 traverseBarbie
   :: (Barbies.BareB c, Barbies.TraversableB (c Barbies.Covered))
   => c Barbies.Covered (CmdParser f out)

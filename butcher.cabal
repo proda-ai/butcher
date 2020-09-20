@@ -187,7 +187,6 @@ executable example02
     , butcher
     }
   main-is:          SimpleCommandlineParser.hs
-  other-modules:    
 
 executable example03
   import: example-base
@@ -197,4 +196,12 @@ executable example03
     , concurrent-output
     }
   main-is:          InteractiveConcurrentOutput.hs
-  other-modules:    
+
+executable example04
+  import: example-base
+  build-depends:
+    { base <999
+    , butcher
+    , barbies
+    }
+  main-is:          BarbieParsing.hs
