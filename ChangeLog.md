@@ -1,5 +1,38 @@
 # Revision history for butcher
 
+## 2.0.0.0  -- Sept 2020
+
+Large internal refactor including some breaking API changes.
+
+- Add the "Applicative" interface in addition to the existing "Monadic" one.
+  This is slightly less expressive but conceptually cleaner/safer (and its
+  implementation is nicer). For best readability you may need `ApplicativeDo`.
+- The applicative interface is *NOT* finished and the test-suite does not
+  cover it.
+- Add the `traverseBarbie` construct to elegantly define a parser for a
+  config data-structure.\
+  Introduces a dependency on the `barbies` library.
+- Refactor the module structure a bit, and change the API of the central
+  `runCmdParser` function. It now returns a `PartialParseInfo`. Essentially,
+  `runCmdParser` is a combination of the previous `runCmdParser` and the
+  previous `simpleCompletion`. This API design is a curious advantage to
+  laziness: Returning a complex struct is harmless as fields that the user
+  does not use won't be evaluated. The downside is that the core function now
+  looks like a complex beast, but the upside is that there is no need to
+  expose multiple functions that are supposed to be chained in a certain way
+  to get all functionality (if desired), and we still _can_ provide simpler
+  versions that are just projections on the `PartialParseInfo`.
+- Remove deprecated functions
+- `peekCmdDesc` is now guaranteed to yield the proper full `CmdDesc` value
+  for the current command or child-command.
+- Remove the `mainFromCmdParserWithHelpDesc` function, because it is redundant
+  given the new semantics of `peekCmdDesc`.
+- Stop support for an anti-feature: The implicit merging of multiple
+  sub-commands definitions with the same name.
+- Internal refactor: The monadic interface now uses two-phase setup: First step
+  is to create a full CommandDesc value, second is running the parser on input
+  while the CommandDesc is chained along
+
 ## 1.3.3.2  -- June 2020
 
 * Support ghc-8.10

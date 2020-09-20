@@ -9,19 +9,24 @@ The main differences are:
 
 * Provides a pure interface by default
 
-* Exposes an evil monadic interface, which allows for much nicer binding of
-  command part results to some variable name.
+* Exposes two interfaces: One based on `Applicative` and one based on `Monad`.
+  The monadic one is slightly more expressive, the applicative interface is
+  conceptually cleaner but currently is less tested.
 
-    In `optparse-applicative` you easily lose track of what field you are
-    modifying after the 5th `<*>` (admittedly, i think -XRecordWildCards
-    improves on that issue already.)
+* The monadic interface must be used as if `ApplicativeDo` was enabled,
+  but does not actually require `ApplicativeDo`. This is implemented via
+  some evil hackery, but nonetheless useful.
 
-    Evil, because you are not allowed to use the monad's full power in this
-    case, i.e. there is a constraint that is not statically enforced.
-    See below.
+* It is not necessary to define data-structure for diffenent child-commands.
+  In general this is geared towards keeping names and definitions/parsers
+  of flags/parameters/child-commands connected, while the default
+  `MyFlags <$> someParser <*> … <*> … <*> … <*> … <*> …` is harder to read
+  and prone to accidental swapping.
 
-* The monadic interface allows much clearer definitions of commandparses
-  with (nested) subcommands. No pesky sum-types are necessary.
+* Supports connecting to "barbies"
+  (see the [`barbies`](https://hackage.haskell.org/package/barbies) package).
+  This allows re-using data-structure definitions for the parser and config
+  values without losing track of field order.
 
 ## Examples
 
@@ -34,7 +39,9 @@ main = mainFromCmdParser $ addCmdImpl $ putStrLn "Hello, World!"
 But lets look at a more feature-complete example:
 
 ~~~~.hs
-main = mainFromCmdParserWithHelpDesc $ \helpDesc -> do
+main = mainFromCmdParser $ do
+
+  helpDesc <- peekCmdDesc
 
   addCmdSynopsis "a simple butcher example program"
   addCmdHelpStr "a very long help document"
@@ -44,14 +51,14 @@ main = mainFromCmdParserWithHelpDesc $ \helpDesc -> do
       (flagHelpStr "print nothing but the numeric version")
     addCmdHelpStr "prints the version of this program"
     addCmdImpl $ putStrLn $ if porcelain
-      then "0.0.0.999"
-      else "example, version 0.0.0.999"
+      then "1.0"
+      else "example, version 1.0"
 
   addCmd "help" $ addCmdImpl $ print $ ppHelpShallow helpDesc
 
   short <- addSimpleBoolFlag "" ["short"]
     (flagHelpStr "make the greeting short")
-  name <- addStringParam "NAME"
+  name <- addParamString "NAME"
     (paramHelpStr "your name, so you can be greeted properly")
 
   addCmdImpl $ do
@@ -62,9 +69,7 @@ main = mainFromCmdParserWithHelpDesc $ \helpDesc -> do
 
 Further:
 
-- [Full description of the above example, including sample behaviour](example1.md)
-- [Example of a pure usage of a CmdParser](example2.md)
-- [Example of using a CmdParser on interactive input](example3.md)
+- See the examples folder included in the package
 - The [brittany](https://github.com/lspitzner/brittany) formatting tool is a
   program that uses butcher for implementing its commandline interface. See
   its [main module source](https://github.com/lspitzner/brittany/blob/master/src-brittany/Main.hs)
