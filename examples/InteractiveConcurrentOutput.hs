@@ -38,9 +38,6 @@ parser = do
     putStrLn $ "bar = " ++ show bar
     putStrLn $ "x = " ++ show x
 
-leftToMaybe :: Either a b -> Maybe a
-leftToMaybe = either Just (const Nothing)
-
 main :: IO ()
 main = displayConsoleRegions $ do
   withReg $ \reg1 -> withReg $ \reg2 -> withReg $ \reg3 -> do

@@ -5,7 +5,9 @@ import           UI.Butcher.Monadic
 
 
 main :: IO ()
-main = mainFromCmdParserWithHelpDesc $ \helpDesc -> do
+main = mainFromCmdParser $ do
+
+  helpDesc <- peekCmdDesc
 
   addCmdSynopsis "a simple butcher example program"
   addCmdHelpStr "a very long help document"

@@ -62,31 +62,6 @@ mainFromCmdParser cmd = do
       printErr $ ppUsage desc
     (_desc, _remaining, Right out) -> out
 
--- | Same as mainFromCmdParser, but with one additional twist: You get access
--- to a knot-tied complete CommandDesc for this full command. Useful in
--- combination with 'UI.Butcher.Monadic.BuiltinCommands.addHelpCommand'
--- mainFromCmdParserWithHelpDesc
---   :: (CommandDesc -> CmdParser (IO ()) (IO ())) -> IO ()
--- mainFromCmdParserWithHelpDesc cmdF = do
---   progName <- System.Environment.getProgName
---   args     <- System.Environment.getArgs
---   case runCmdParserWithHelpDesc (InputArgs args) cmdF of
---     (desc, Left err) -> do
---       putStrErrLn $ progName ++ ": error parsing arguments: " ++ head
---         (_pe_messages err)
---       putStrErrLn $ case _pe_remaining err of
---         InputString ""  -> "at the end of input."
---         InputString str -> case show str of
---           s | length s < 42 -> "at: " ++ s ++ "."
---           s                 -> "at: " ++ take 40 s ++ "..\"."
---         InputArgs [] -> "at the end of input"
---         InputArgs xs -> case List.unwords $ show <$> xs of
---           s | length s < 42 -> "at: " ++ s ++ "."
---           s                 -> "at: " ++ take 40 s ++ "..\"."
---       putStrErrLn $ "usage:"
---       printErr $ ppUsage desc
---     (_desc, Right out) -> out
-
 putStrErrLn :: String -> IO ()
 putStrErrLn s = hPutStrLn stderr s
 
