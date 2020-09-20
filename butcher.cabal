@@ -24,6 +24,11 @@ source-repository head {
   location: https://github.com/lspitzner/butcher.git
 }
 
+flag butcher-examples
+  description: must be enabled to build examples
+  default: False
+  manual: True
+
 library
   exposed-modules:     UI.Butcher.Monadic.Types
                        UI.Butcher.Monadic
@@ -170,11 +175,14 @@ common example-base
     -fno-warn-unused-imports
     -fno-warn-orphans
   }
+  if !flag(butcher-examples) {
+    buildable: False
+  }
 
 executable example01
   import: example-base
   build-depends:
-    { base <999
+    { base
     , butcher
     }
   main-is:          HelloWorld.hs
@@ -183,7 +191,7 @@ executable example01
 executable example02
   import: example-base
   build-depends:
-    { base <999
+    { base
     , butcher
     }
   main-is:          SimpleCommandlineParser.hs
@@ -191,7 +199,7 @@ executable example02
 executable example03
   import: example-base
   build-depends:
-    { base <999
+    { base
     , butcher
     , concurrent-output
     }
@@ -200,7 +208,7 @@ executable example03
 executable example04
   import: example-base
   build-depends:
-    { base <999
+    { base
     , butcher
     , barbies
     }
