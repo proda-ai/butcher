@@ -15,3 +15,7 @@ cabal.sandbox.config
 \#*.gui\#
 cabal.project.local
 .ghc.environment.*
+/result*
+/nix/seaaye-cache
+/nix/gcroots
+/nix/ci-out
