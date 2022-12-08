@@ -19,6 +19,11 @@
       index-state = "2022-07-01T00:00:00Z";
       ghc-ver = "ghc8107";
     };
+    hackage-9-00 = {
+      resolver = "hackage";
+      index-state = "2022-07-01T00:00:00Z";
+      ghc-ver = "ghc902";
+    };
     stackage-8-06 = {
       resolver = "stackage";
       stackFile = "stack-8-6.yaml";
@@ -33,6 +38,11 @@
       resolver = "stackage";
       stackFile = "stack-8-10.yaml";
       ghc-ver = "ghc8107";
+    };
+    stackage-9-00 = {
+      resolver = "stackage";
+      stackFile = "stack-9-0.yaml";
+      ghc-ver = "ghc902";
     };
   };
   module-flags = [
