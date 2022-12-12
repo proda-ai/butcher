@@ -116,7 +116,7 @@ import Data.Monoid ( Endo(..), All(..), Any(..), Sum(..), Product(..), Alt(..), 
 import Data.Void ( Void )
 -- import Data.Proxy ( Proxy(..) )
 import Data.Sequence ( Seq )
-import Data.Semigroup ( Semigroup(..), Option )
+import Data.Semigroup ( Semigroup(..) )
 
 import Data.Map ( Map )
 import Data.Set ( Set )

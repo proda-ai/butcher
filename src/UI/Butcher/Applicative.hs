@@ -157,7 +157,7 @@ data MyFlagStruct (c :: Type) (f :: Type -> Type) = MyFlagStruct
 instance Barbies.FunctorB (MyFlagStruct Barbies.Covered)
 instance Barbies.BareB MyFlagStruct
 instance Barbies.TraversableB (MyFlagStruct Barbies.Covered)
-instance Semigroup (MyFlagStruct Barbies.Covered Option) where
+instance Semigroup (MyFlagStruct Barbies.Covered Maybe) where
   (<>) = gmappend
 
 _test :: IO ()
