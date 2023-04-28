@@ -77,6 +77,8 @@ module UI.Butcher.Monadic.Command
   , addAlternatives
   , ManyUpperBound (..)
   , varPartDesc
+  , PartParser
+  , PartParseResult(..)
   )
 where
 
