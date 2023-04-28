@@ -1,9 +1,10 @@
 # Revision history for butcher
 
-## 2.0.0.0  -- Sept 2020
+## 2.0.0.0  -- May 2023
 
 Large internal refactor including some breaking API changes.
 
+- Support ghc-9.0 and ghc-9.2
 - Add the "Applicative" interface in addition to the existing "Monadic" one.
   This is slightly less expressive but conceptually cleaner/safer (and its
   implementation is nicer). For best readability you may need `ApplicativeDo`.
